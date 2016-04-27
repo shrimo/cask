@@ -1161,9 +1161,8 @@ class Object(object):
             else:
                 self._klass = OOBJECTS.get(self.type())
             if self._klass:
-                if not self.parent:
-                    print "OObject is missing parent:", self.path()
-                self._oobject = self._klass(self.parent.oobject, self.name,
+                if self.parent:
+                    self._oobject = self._klass(self.parent.oobject, self.name,
                                             meta, self.time_sampling_id)
             else:
                 print "OObject class not found for: %s" % (self.name)

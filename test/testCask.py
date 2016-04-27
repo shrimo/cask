@@ -239,6 +239,57 @@ class Test1_Write(unittest.TestCase):
         a.write_to_file(filename)
         self.assertTrue(os.path.isfile(filename))
 
+    def test_add_child(self):
+        """Creates a simple cache with one mesh, then moves and copies it. 
+        Resulting abc cache should look like this:
+
+        ABC                                                                                                                                        
+         |--x1
+         |--x2
+         |    `--meshy
+         `--x3
+             `--meshy
+        """
+        filename = os.path.join(TEMPDIR, "cask_add_child.abc")
+        
+        a = cask.Archive(mesh_out())
+        meshy = a.top.children["meshy"]
+        x1 = a.top.children["x1"] = cask.Xform()
+        x2 = a.top.children["x2"] = cask.Xform()
+        x3 = a.top.children["x3"] = cask.Xform()
+
+        # test moving it and copying it
+        x1.add_child(meshy)
+        x2.add_child(meshy)
+        x3.add_child(cask.copy(meshy))
+
+        # export to a new filename
+        a.write_to_file(filename)
+        a.close()
+
+        # test the new file
+        a = cask.Archive(filename)
+        self.assertEqual(set(a.top.children.keys()), set(["x1", "x2", "x3"]))
+        
+        x1 = a.top.children["x1"]
+        x2 = a.top.children["x2"]
+        x3 = a.top.children["x3"]
+        
+        # meshy should have been moved from x1->x2, and copied to x3
+        self.assertEqual(len(x1.children), 0)
+        self.assertEqual(len(x2.children), 1)
+        self.assertEqual(len(x3.children), 1)
+
+        m2 = x2.children["meshy"]
+        m3 = x3.children["meshy"]
+
+        # basic check to see if mesh points are the same
+        self.assertEqual(m2.type(), "PolyMesh")
+        self.assertEqual(m3.type(), "PolyMesh")
+        self.assertEqual(m2.properties[".geom/P"].values,
+                m3.properties[".geom/P"].values)
+        a.close()
+
     def test_write_geom(self):
         filename = os.path.join(TEMPDIR, "cask_write_geom.abc")
 
