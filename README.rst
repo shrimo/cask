@@ -35,6 +35,6 @@ Installation
 
 From source ::
 
-    $ git clone https://github.com/rsgalloway/cask
+    $ git clone https://github.com/alembic/cask
     $ cd cask
     $ python setup.py install
