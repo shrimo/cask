@@ -1,0 +1,1126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>cask – Alembic Python Convenience Wrapper &mdash; Cask 1.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Cask 1.0.0 documentation" href="#" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Cask 1.0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-cask">
+<span id="cask-alembic-python-convenience-wrapper"></span><h1><a class="reference internal" href="#module-cask" title="cask"><code class="xref py py-mod docutils literal"><span class="pre">cask</span></code></a> &#8211; Alembic Python Convenience Wrapper<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h1>
+<p>Cask is a high level convenience wrapper for the <a class="reference external" href="http://alembic.io">Alembic</a>
+Python API. It blurs the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties,
+abstracting both into a single class object. It also wraps up a number of lower-level
+functions into high level convenience methods.</p>
+<p>Arguably one of the biggest conveniences is that cask handles all the OObject
+and OProperty bookkeeping for you, keeping these objects in scope until you
+call an explicit &#8220;save()&#8221; method. Some of the other features are listed below.</p>
+<blockquote>
+<div><ul class="simple">
+<li>Abstraction layer for I and O object types,</li>
+<li>Automatically schemify objects on read,</li>
+<li>Deferred writing / cached reading,</li>
+<li>Auto convert python data types to alembic data types,</li>
+<li>Deep dictionary access for objects and properties.</li>
+</ul>
+</div></blockquote>
+<div class="section" id="tutorial">
+<h2>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h2>
+<p>Since cask abstracts &#8220;I&#8221; and &#8220;O&#8221; objects, creating a new archive or reading an
+existing one from disk uses the same Archive class.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># read an archive from disk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">cask</span><span class="o">.</span><span class="n">Archive</span><span class="p">(</span><span class="s2">&quot;lights.abc&quot;</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># creates a new empty archive</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Archive</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Both objects have internal &#8220;iobject&#8221; and &#8220;oobject&#8221; properties that point to the
+corresponding Alembic &#8220;I&#8221; and &#8220;O&#8221; objects. For &#8220;a&#8221;, there will be an internal
+&#8220;iobject&#8221; property that points to the IArchive, and for &#8220;b&#8221; that property returns
+None. In both cases, accessing the Top object is easy, it&#8217;s just</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">.</span><span class="n">top</span>
+<span class="go">&lt;Top &quot;ABC&quot;&gt;</span>
+</pre></div>
+</div>
+<p>A lot of the accessors in <cite>cask</cite> are properties vs. methods, like <cite>properties</cite>, and
+<cite>children</cite>, both with return dictionary-like objects. Walking and modifying the
+archive&#8217;s hierarchy is as simple as accessing/manipulating these dict-like objects</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">walk</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span> <span class="n">obj</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">type</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+<span class="gp">... </span>        <span class="n">walk</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">walk</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">top</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># add a new xform under the top node</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s2">&quot;foo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cask</span><span class="o">.</span><span class="n">Xform</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="section" id="navigation">
+<h3>Navigation<a class="headerlink" href="#navigation" title="Permalink to this headline">¶</a></h3>
+<p>Deep dictionary access and (deferred) auto-schemification are available on the
+dict-like <cite>children</cite> and <cite>properties</cite> accessors.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">l</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s2">&quot;root/world/lgt/gaffer/point/pointShape&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">l</span>
+<span class="go">&lt;Light &quot;pointShape&quot;&gt;</span>
+</pre></div>
+</div>
+<p>I say deferred because while the the
+correct high-level cask class is returned for each object, the underlying
+Alembic object is still an IObject until we need to wrap it in its subclass
+and/or access its schema class.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">l</span><span class="o">.</span><span class="n">iobject</span>
+<span class="go">&lt;alembic.Abc.IObject object at 0x1016830&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">l</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">getNumSamples</span><span class="p">()</span> <span class="c1"># access the schema</span>
+<span class="go">6</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">l</span><span class="o">.</span><span class="n">iobject</span>
+<span class="go">&lt;alembic.AbcGeom.ILight object at 0x1047838&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">l</span><span class="o">.</span><span class="n">schema</span>
+<span class="go">&lt;alembic.AbcGeom.ILightSchema object at 0xfe2670&gt;</span>
+</pre></div>
+</div>
+<p>To access or create properties, use the <cite>properties</cite> accessor. For example, to
+access the value of the <cite>diffuse</cite> light shader property on our light, <cite>l</cite>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">l</span><span class="o">.</span><span class="n">properties</span>
+<span class="go">{&#39;.geom&#39;: &lt;Property &quot;.geom&quot;&gt;, &#39;shader&#39;: &lt;Property &quot;shader&quot;&gt;}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">l</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;shader/arnold.light.params/diffuse&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="go">1.0</span>
+</pre></div>
+</div>
+<p>The &#8220;old&#8221; way of doing this via the Alembic Python API would require many additional
+steps after finding the light object, including matching and wrapping the IObject in
+the alembic.AbcGeom.ILight class, accessing the schema, then navigating to the property
+through the a series of property accessors. Cask makes this much more straight-forward
+and user-friendly.</p>
+</div>
+<div class="section" id="hierarchy-manipulation">
+<h3>Hierarchy Manipulation<a class="headerlink" href="#hierarchy-manipulation" title="Permalink to this headline">¶</a></h3>
+<p>Adding a new Object or Property is as simple as adding an object to a dictionary.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s2">&quot;myObject&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cask</span><span class="o">.</span><span class="n">Xform</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">l</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;myProperty&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cask</span><span class="o">.</span><span class="n">Property</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Or you can set the <cite>parent</cite> attribute on any object:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">cask</span><span class="o">.</span><span class="n">Xform</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;foo&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">top</span>
+</pre></div>
+</div>
+<p>Cask makes it trivial to extract an object by copying it from one archive to a new one:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">l</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">top</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">.</span><span class="n">write_to_file</span><span class="p">(</span><span class="s2">&quot;/var/tmp/point_light.abc&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Check the output:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>&gt; abctree /var/tmp/point_light.abc
+ABC
+`-- pointShape
+</pre></div>
+</div>
+<p>Inserting nodes is also easy:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">cask</span><span class="o">.</span><span class="n">Archive</span><span class="p">(</span><span class="s2">&quot;animatedcube.abc&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="n">cask</span><span class="o">.</span><span class="n">Xform</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s2">&quot;cube1&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s2">&quot;root&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s2">&quot;cube1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">.</span><span class="n">write_to_file</span><span class="p">(</span><span class="s2">&quot;/var/tmp/cask_insert_node.abc&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Check the results:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>&gt; abctree /var/tmp/cask_insert_node.abc
+ABC
+ `-- root
+     `-- cube1
+         `-- cube1Shape
+</pre></div>
+</div>
+</div>
+<div class="section" id="setting-values">
+<h3>Setting Values<a class="headerlink" href="#setting-values" title="Permalink to this headline">¶</a></h3>
+<p>Cask automatically converts Python data types to the appropriate Alembic typed property, or
+imath type using an internal map. There is no need to know which typed OProperty class to use,
+or potentially even which imath type you need as an argument to that property.</p>
+<p>Currently, you can either set a value on a property directly, or create an
+Alembic sample object, set values on that, and then set the sample on the cask object.</p>
+<p>Setting values directly on properties:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">cask</span><span class="o">.</span><span class="n">Archive</span><span class="p">(</span><span class="s2">&quot;octopus.abc&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;squid_low&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;.xform/.vals&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">imath</span><span class="o">.</span><span class="n">M33d</span><span class="p">((</span><span class="mi">50</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">90</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">values</span><span class="p">)):</span>
+<span class="gp">... </span>    <span class="n">x</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Setting values on sample objects:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">uvsamp</span> <span class="o">=</span> <span class="n">alembic</span><span class="o">.</span><span class="n">AbcGeom</span><span class="o">.</span><span class="n">OV2fGeomParamSample</span><span class="p">(</span><span class="n">meshData</span><span class="o">.</span><span class="n">uvs</span><span class="p">,</span> <span class="n">kFacevaryingScope</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nsamp</span> <span class="o">=</span> <span class="n">alembic</span><span class="o">.</span><span class="n">AbcGeom</span><span class="o">.</span><span class="n">ON3fGeomParamSample</span><span class="p">(</span><span class="n">meshData</span><span class="o">.</span><span class="n">normals</span><span class="p">,</span> <span class="n">kFacevaryingScope</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">alembic</span><span class="o">.</span><span class="n">AbcGeom</span><span class="o">.</span><span class="n">OPolyMeshSchemaSample</span><span class="p">(</span><span class="n">meshData</span><span class="o">.</span><span class="n">verts</span><span class="p">,</span> <span class="n">meshData</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span>
+<span class="go">               meshData.counts, uvsamp, nsamp)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">set_sample</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A third way to set values is using cask wrapped methods on objects. Currently, there is
+only one method implemented, the <cite>setScale</cite> method on the <cite>cask.Xform</cite> class. These methods
+create an internal sample object and cache it, setting it on the object when <cite>save()</cite> is
+called. If this seems like the best, most convenient way of setting values, then we can
+implement more of these.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">cask</span><span class="o">.</span><span class="n">Xform</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">imath</span><span class="o">.</span><span class="n">V3d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Caveat: Setting samples on the object will currently only work for new, empty archives, not
+archives that have been read in from disk. This is a known limitation and on the to-do list
+to resolve.</p>
+</div>
+</div>
+<div class="section" id="module-cask">
+<span id="module-contents"></span><h2>Module Contents<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h2>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="function">
+<dt id="cask.find">
+<code class="descclassname">cask.</code><code class="descname">find</code><span class="sig-paren">(</span><em>obj</em>, <em>name='.*'</em>, <em>types=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#find"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.find" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds and returns a list of Objects with names matching
+a given regular expression.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">find</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">top</span><span class="p">,</span> <span class="s2">&quot;.*Shape&quot;</span><span class="p">)</span>
+<span class="go">[&lt;PolyMesh &quot;cube1Shape&quot;&gt;, &lt;PolyMesh &quot;cube2Shape&quot;&gt;]</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> &#8211; Regular expression to match object name</li>
+<li><strong>types</strong> &#8211; Class type inclusion list</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Sorted list of Object results</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cask.find_iter">
+<code class="descclassname">cask.</code><code class="descname">find_iter</code><span class="sig-paren">(</span><em>obj</em>, <em>name='.*'</em>, <em>types=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#find_iter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.find_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generator that yields Objects with names matching
+a given regular expression.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> &#8211; Regular expression to match object name</li>
+<li><strong>types</strong> &#8211; Class type inclusion list</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Yields:</th><td class="field-body"><p class="first last">Object with name matching name regex</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cask.is_valid">
+<code class="descclassname">cask.</code><code class="descname">is_valid</code><span class="sig-paren">(</span><em>archive</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#is_valid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.is_valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the archive is a valid alembic archive.</p>
+</dd></dl>
+
+<div class="section" id="module-cask">
+<span id="archive"></span><h3>Archive<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.Archive">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">Archive</code><span class="sig-paren">(</span><em>filepath=None</em>, <em>fps=24</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Archive I/O Object</p>
+<dl class="method">
+<dt id="cask.Archive.alembic_version">
+<code class="descname">alembic_version</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.alembic_version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.alembic_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the version of alembic used to write this archive.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes this archive and makes it immutable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.end_frame">
+<code class="descname">end_frame</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.end_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.end_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the last frame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.end_time">
+<code class="descname">end_time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.end_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.end_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the global end time in seconds.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.frame_range">
+<code class="descname">frame_range</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.frame_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.frame_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a tuple of the global start and end times in frames.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.info">
+<code class="descname">info</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a metadata dictionary.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Archive.iobject">
+<code class="descname">iobject</code><a class="headerlink" href="#cask.Archive.iobject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal Alembic IArchive object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.is_leaf">
+<code class="descname">is_leaf</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.is_leaf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.is_leaf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns False.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Archive.name">
+<code class="descname">name</code><a class="headerlink" href="#cask.Archive.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the basename of this archive.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Archive.oobject">
+<code class="descname">oobject</code><a class="headerlink" href="#cask.Archive.oobject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal Alembic OArchive object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.path">
+<code class="descname">path</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the filepath for this Archive.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.set_start_frame">
+<code class="descname">set_start_frame</code><span class="sig-paren">(</span><em>frame</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.set_start_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.set_start_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the start frame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.set_start_time">
+<code class="descname">set_start_time</code><span class="sig-paren">(</span><em>start</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.set_start_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.set_start_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the start time in seconds.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.start_frame">
+<code class="descname">start_frame</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.start_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.start_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the start frame.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.start_time">
+<code class="descname">start_time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.start_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.start_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the global start time in seconds.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.time_range">
+<code class="descname">time_range</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.time_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.time_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a tuple of the global start and end time in seconds.</p>
+<p>** Depends on the X.samples property being set on the Top node,
+which is currently being written by Maya only. **</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Archive.timesamplings">
+<code class="descname">timesamplings</code><a class="headerlink" href="#cask.Archive.timesamplings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generator that yields tuples of (index, TimeSampling) objects.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Archive.top">
+<code class="descname">top</code><a class="headerlink" href="#cask.Archive.top" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hierarchy root, cask.Top object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.type">
+<code class="descname">type</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns &#8220;Archive&#8221;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.using_version">
+<code class="descname">using_version</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.using_version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.using_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the version of alembic used to read this archive.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Archive.write_to_file">
+<code class="descname">write_to_file</code><span class="sig-paren">(</span><em>filepath=None</em>, <em>asOgawa=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Archive.write_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Archive.write_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes this archive to a file on disk and closes the Archive.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="object"></span><h3>Object<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.Object">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">Object</code><span class="sig-paren">(</span><em>iobject=None</em>, <em>schema=None</em>, <em>time_sampling_id=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base I/O Object class.</p>
+<dl class="method">
+<dt id="cask.Object.add_child">
+<code class="descname">add_child</code><span class="sig-paren">(</span><em>child</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.add_child"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.add_child" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a child object to this object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>child</strong> &#8211; cask.Object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.archive">
+<code class="descname">archive</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.archive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.archive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Archive for this object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Object.children">
+<code class="descname">children</code><a class="headerlink" href="#cask.Object.children" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns children sub-tree accessor.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.clear_children">
+<code class="descname">clear_children</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.clear_children"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.clear_children" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clears the internal children container.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.clear_properties">
+<code class="descname">clear_properties</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.clear_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.clear_properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clears the internal properties container.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.clear_samples">
+<code class="descname">clear_samples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.clear_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.clear_samples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clears the internal samples container.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes this object by removing references to internal OObject.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.end_frame">
+<code class="descname">end_frame</code><span class="sig-paren">(</span><em>fps=24</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.end_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.end_frame" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fps</strong> &#8211; Frames per second used to calculate the end frame</td>
+</tr>
+</tbody>
+</table>
+<p>(default 24.0)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Last frame as float</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.get_item">
+<code class="descname">get_item</code><span class="sig-paren">(</span><em>item</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.get_item"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.get_item" title="Permalink to this definition">¶</a></dt>
+<dd><p>used for deep dict access</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.global_matrix">
+<code class="descname">global_matrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.global_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.global_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns world space matrix for this object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Object.iobject">
+<code class="descname">iobject</code><a class="headerlink" href="#cask.Object.iobject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal Alembic IObject object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.is_animated">
+<code class="descname">is_animated</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.is_animated"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.is_animated" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if any properties are not constant.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.is_deforming">
+<code class="descname">is_deforming</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.is_deforming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.is_deforming" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the object has changing P values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.is_leaf">
+<code class="descname">is_leaf</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.is_leaf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.is_leaf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if this object is a leaf node, i.e. it has no children.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="cask.Object.matches">
+<em class="property">classmethod </em><code class="descname">matches</code><span class="sig-paren">(</span><em>iobject</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.matches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if a given iobject type matches this type.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Object.metadata">
+<code class="descname">metadata</code><a class="headerlink" href="#cask.Object.metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Metadata as a dict.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Object.name">
+<code class="descname">name</code><a class="headerlink" href="#cask.Object.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set and get the name of the object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Object.oobject">
+<code class="descname">oobject</code><a class="headerlink" href="#cask.Object.oobject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal Alembic OObject object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Object.parent">
+<code class="descname">parent</code><a class="headerlink" href="#cask.Object.parent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parent object accessor.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.path">
+<code class="descname">path</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the full path/name of this object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Object.properties">
+<code class="descname">properties</code><a class="headerlink" href="#cask.Object.properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>Properties accessor.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Object.samples">
+<code class="descname">samples</code><a class="headerlink" href="#cask.Object.samples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns samples from the Alembic IObject.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.save">
+<code class="descname">save</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Walks child and property sub-trees creating OObjects as necessary.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Object.schema">
+<code class="descname">schema</code><a class="headerlink" href="#cask.Object.schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Alembic schema object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.set_item">
+<code class="descname">set_item</code><span class="sig-paren">(</span><em>name</em>, <em>item</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.set_item"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.set_item" title="Permalink to this definition">¶</a></dt>
+<dd><p>used for deep dict access</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.set_sample">
+<code class="descname">set_sample</code><span class="sig-paren">(</span><em>sample</em>, <em>index=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.set_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.set_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets an Alembic sample object on this object.</p>
+<p><a href="#id1"><span class="problematic" id="id2">*</span></a>Do we want to expose samples at all? Should all data
+be set via seting values on properties, directly or with
+high level methods?</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>sample</strong> &#8211; Alembic sample object.</li>
+<li><strong>index</strong> &#8211; Index of the sample to set, or None.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.start_frame">
+<code class="descname">start_frame</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.start_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.start_frame" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fps</strong> &#8211; Frames per second used to calculate the start frame</td>
+</tr>
+</tbody>
+</table>
+<p>(default 24.0)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Start frame as float</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Object.time_sampling_id">
+<code class="descname">time_sampling_id</code><a class="headerlink" href="#cask.Object.time_sampling_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time sampling ID.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Object.type">
+<code class="descname">type</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Object.type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Object.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the name of the class.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="property"></span><h3>Property<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.Property">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">Property</code><span class="sig-paren">(</span><em>iproperty=None</em>, <em>time_sampling_id=0</em>, <em>name=None</em>, <em>klass=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property" title="Permalink to this definition">¶</a></dt>
+<dd><p>Property I/O Object.</p>
+<dl class="method">
+<dt id="cask.Property.add_property">
+<code class="descname">add_property</code><span class="sig-paren">(</span><em>prop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.add_property"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.add_property" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a property to this, making this property a compound property.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>property</strong> &#8211; cask.Property class object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.archive">
+<code class="descname">archive</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.archive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.archive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Archive for this property.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.clear_properties">
+<code class="descname">clear_properties</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.clear_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.clear_properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clears the properties container.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.clear_values">
+<code class="descname">clear_values</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.clear_values"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.clear_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clears the values container.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes this property by removing references to internal OProperty.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Property.datatype">
+<code class="descname">datatype</code><a class="headerlink" href="#cask.Property.datatype" title="Permalink to this definition">¶</a></dt>
+<dd><p>DataType object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.extent">
+<code class="descname">extent</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.extent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.extent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the property&#8217;s datatype extent.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.get_item">
+<code class="descname">get_item</code><span class="sig-paren">(</span><em>item</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.get_item"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.get_item" title="Permalink to this definition">¶</a></dt>
+<dd><p>used for deep dict access</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.get_value">
+<code class="descname">get_value</code><span class="sig-paren">(</span><em>index=None</em>, <em>time=None</em>, <em>frame=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.get_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.get_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a the value stored on this property for a given sample
+index, time or frame.</p>
+<p>Provide one of the following args. If none are provided, it will
+return the 0th value.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>index</strong> &#8211; sample index</li>
+<li><strong>time</strong> &#8211; time in seconds</li>
+<li><strong>frame</strong> &#8211; frame number (assumes 24fps, to change set on archive)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Property.iobject">
+<code class="descname">iobject</code><a class="headerlink" href="#cask.Property.iobject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal Alembic IProperty object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.is_compound">
+<code class="descname">is_compound</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.is_compound"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.is_compound" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if this property contains sub-properties.</p>
+<p>Note that compound properties cannot have values, and
+simple properties cannont have sub-properties.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.is_leaf">
+<code class="descname">is_leaf</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.is_leaf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.is_leaf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if this property is a leaf node, i.e. it has no sub-properties.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Property.metadata">
+<code class="descname">metadata</code><a class="headerlink" href="#cask.Property.metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Metadata as a dict.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Property.name">
+<code class="descname">name</code><a class="headerlink" href="#cask.Property.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets and sets the property name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.object">
+<code class="descname">object</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the object parent for this property.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Property.oobject">
+<code class="descname">oobject</code><a class="headerlink" href="#cask.Property.oobject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal Alembic OProperty object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Property.parent">
+<code class="descname">parent</code><a class="headerlink" href="#cask.Property.parent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parent object or property.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.path">
+<code class="descname">path</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the full path/name of this property.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.pod">
+<code class="descname">pod</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.pod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.pod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the property&#8217;s datatype POD value.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Property.properties">
+<code class="descname">properties</code><a class="headerlink" href="#cask.Property.properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>Child properties accessor.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.save">
+<code class="descname">save</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Walks sub-tree and creates corresponding alembic OProperty classes,
+if they don&#8217;t exist, and sets values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.set_item">
+<code class="descname">set_item</code><span class="sig-paren">(</span><em>name</em>, <em>item</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.set_item"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.set_item" title="Permalink to this definition">¶</a></dt>
+<dd><p>used for deep dict access</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.set_value">
+<code class="descname">set_value</code><span class="sig-paren">(</span><em>value</em>, <em>index=None</em>, <em>time=None</em>, <em>frame=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.set_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.set_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets a value on the property at a given index.</p>
+<p>Provide one of the following args. If none are provided, it will
+append to the end.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>index</strong> &#8211; sample index</li>
+<li><strong>time</strong> &#8211; time in seconds</li>
+<li><strong>frame</strong> &#8211; frame number (assumes 24fps, to change set on archive)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Property.type">
+<code class="descname">type</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Property.type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Property.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the name of the class.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Property.values">
+<code class="descname">values</code><a class="headerlink" href="#cask.Property.values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns dictionary of values stored on this property.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="top"></span><h3>Top<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.Top">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">Top</code><span class="sig-paren">(</span><em>archive</em>, <em>iobject=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Top"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Top" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alembic Top Object.</p>
+<dl class="method">
+<dt id="cask.Top.is_leaf">
+<code class="descname">is_leaf</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Top.is_leaf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Top.is_leaf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns False.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="cask.Top.matches">
+<em class="property">classmethod </em><code class="descname">matches</code><span class="sig-paren">(</span><em>iobject</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Top.matches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Top.matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if iobject is a Top object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cask.Top.name">
+<code class="descname">name</code><a class="headerlink" href="#cask.Top.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the object name, which for Top is always ABC</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Top.path">
+<code class="descname">path</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Top.path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Top.path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the full path/name of this object.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="camera"></span><h3>Camera<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.Camera">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">Camera</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Camera"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Camera" title="Permalink to this definition">¶</a></dt>
+<dd><p>Camera I/O Object subclass.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="curve"></span><h3>Curve<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.Curve">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">Curve</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Curve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Curve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Curve I/O Object subclass.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="faceset"></span><h3>FaceSet<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.FaceSet">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">FaceSet</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#FaceSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.FaceSet" title="Permalink to this definition">¶</a></dt>
+<dd><p>FaceSet I/O Object subclass.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="light"></span><h3>Light<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.Light">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">Light</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Light"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Light" title="Permalink to this definition">¶</a></dt>
+<dd><p>Light I/O Object subclass.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="material"></span><h3>Material<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.Material">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">Material</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Material"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Material" title="Permalink to this definition">¶</a></dt>
+<dd><p>Material I/O Object subclass.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="nupatch"></span><h3>NuPatch<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.NuPatch">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">NuPatch</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#NuPatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.NuPatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>NuPath I/O Object subclass.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="polymesh"></span><h3>PolyMesh<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.PolyMesh">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">PolyMesh</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#PolyMesh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.PolyMesh" title="Permalink to this definition">¶</a></dt>
+<dd><p>PolyMesh I/O Object subclass.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="subd"></span><h3>SubD<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.SubD">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">SubD</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#SubD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.SubD" title="Permalink to this definition">¶</a></dt>
+<dd><p>SubD I/O Object subclass.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cask">
+<span id="xform"></span><h3>Xform<a class="headerlink" href="#module-cask" title="Permalink to this headline">¶</a></h3>
+<p>Cask is a high level convenience wrapper for the Alembic Python API. It blurs
+the lines between Alembic &#8220;I&#8221; and &#8220;O&#8221; objects and properties, abstracting both
+into a single class object. It also wraps up a number of lower-level functions
+into high level convenience methods.</p>
+<p>More information can be found at <a class="reference external" href="http://docs.alembic.io/python/cask.html">http://docs.alembic.io/python/cask.html</a></p>
+<dl class="class">
+<dt id="cask.Xform">
+<em class="property">class </em><code class="descclassname">cask.</code><code class="descname">Xform</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Xform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Xform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Xform I/O Object subclass.</p>
+<dl class="method">
+<dt id="cask.Xform.matrix">
+<code class="descname">matrix</code><span class="sig-paren">(</span><em>index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Xform.matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Xform.matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the xform matrix value for a given index.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>index</strong> &#8211; Sample index.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cask.Xform.set_scale">
+<code class="descname">set_scale</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cask.html#Xform.set_scale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cask.Xform.set_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an internal XformSample object and sets the scale value.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#"><code class="docutils literal"><span class="pre">cask</span></code> &#8211; Alembic Python Convenience Wrapper</a><ul>
+<li><a class="reference internal" href="#tutorial">Tutorial</a><ul>
+<li><a class="reference internal" href="#navigation">Navigation</a></li>
+<li><a class="reference internal" href="#hierarchy-manipulation">Hierarchy Manipulation</a></li>
+<li><a class="reference internal" href="#setting-values">Setting Values</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-cask">Module Contents</a><ul>
+<li><a class="reference internal" href="#module-cask">Archive</a></li>
+<li><a class="reference internal" href="#module-cask">Object</a></li>
+<li><a class="reference internal" href="#module-cask">Property</a></li>
+<li><a class="reference internal" href="#module-cask">Top</a></li>
+<li><a class="reference internal" href="#module-cask">Camera</a></li>
+<li><a class="reference internal" href="#module-cask">Curve</a></li>
+<li><a class="reference internal" href="#module-cask">FaceSet</a></li>
+<li><a class="reference internal" href="#module-cask">Light</a></li>
+<li><a class="reference internal" href="#module-cask">Material</a></li>
+<li><a class="reference internal" href="#module-cask">NuPatch</a></li>
+<li><a class="reference internal" href="#module-cask">PolyMesh</a></li>
+<li><a class="reference internal" href="#module-cask">SubD</a></li>
+<li><a class="reference internal" href="#module-cask">Xform</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Cask 1.0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2012-2016, Sony Pictures Imageworks Inc. and Industrial Light &amp; Magic, a division of Lucasfilm Entertainment Company Ltd..
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4b1.
+    </div>
+  </body>
+</html>
