@@ -26,7 +26,7 @@ Deep dictionary access ::
 Documentation
 -------------
 
-http://docs.alembic.io/python/cask.html
+https://alembic.github.io/cask
 
 
 
