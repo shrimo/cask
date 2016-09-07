@@ -1403,12 +1403,12 @@ class Object(object):
         except AttributeError:
             return self.parent.end_frame()
 
-    def global_matrix(self):
+    def global_matrix(self, index=0):
         """Returns world space matrix for this object."""
         def accum_xform(xform, obj):
             """recursive xform accum"""
             if Xform.matches(obj._iobject):
-                xform *= obj.matrix()
+                xform *= obj.matrix(index)
         xform = imath.M44d()
         xform.makeIdentity()
         parent = self
