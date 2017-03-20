@@ -1,6 +1,6 @@
 #-******************************************************************************
 #
-# Copyright (c) 2012-2016,
+# Copyright (c) 2012-2017,
 #  Sony Pictures Imageworks Inc. and
 #  Industrial Light & Magic, a division of Lucasfilm Entertainment Company Ltd.
 #
@@ -42,7 +42,7 @@ into high level convenience methods.
 
 More information can be found at http://docs.alembic.io/python/cask.html
 """
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 import os
 import re
@@ -840,7 +840,7 @@ class Property(object):
             meta = self.iobject.getMetaData()
             for field in meta.serialize().split(';'):
                 splits = field.split('=')
-                key = splits[0]#.replace('_ai_','')
+                key = splits[0]
                 value = '='.join(splits[1:])
                 self._metadata[key] = value
         return self._metadata
@@ -960,12 +960,17 @@ class Property(object):
         """
         if len(self.properties) > 0:
             raise TypeError(_COMPOUND_PROPERTY_VALUE_ERROR_)
-        ts = self.object().schema.getTimeSampling()
-        numSamples = self.object().schema.getNumSamples()
+        if self.iobject:
+            ts = self.iobject.getTimeSampling()
+            numSamples = self.iobject.getNumSamples()
+        else:
+            ts = self.object().schema.getTimeSampling()
+            numSamples = self.object().schema.getNumSamples()
         if time is not None:
             return ts.getNearIndex(float(time), numSamples)
         elif frame is not None:
-            return ts.getNearIndex((frame / self.archive().fps), numSamples)
+            return ts.getNearIndex((frame / float(self.archive().fps)),
+                numSamples)
         else:
             return 0
 
@@ -1246,7 +1251,7 @@ class Object(object):
             meta = self.iobject.getMetaData()
             for field in meta.serialize().split(';'):
                 splits = field.split('=')
-                key = splits[0]#.replace('_ai_','')
+                key = splits[0]
                 value = '='.join(splits[1:])
                 self._metadata[key] = value
         return self._metadata
@@ -1373,11 +1378,7 @@ class Object(object):
             return False
 
     def start_frame(self):
-        """
-        :param fps: Frames per second used to calculate the start frame
-        (default 24.0)
-
-        :return: Start frame as float
+        """Returns start frame.
         """
         try:
             time_sample = self.iobject.getTimeSampling()
@@ -1386,12 +1387,8 @@ class Object(object):
         except AttributeError:
             return self.parent.start_frame()
 
-    def end_frame(self, fps=24):
-        """
-        :param fps: Frames per second used to calculate the end frame
-        (default 24.0)
-
-        :return: Last frame as float
+    def end_frame(self):
+        """Returns last frame.
         """
         try:
             time_sample = self.iobject.getTimeSampling()
@@ -1404,7 +1401,8 @@ class Object(object):
             return self.parent.end_frame()
 
     def global_matrix(self, index=0):
-        """Returns world space matrix for this object."""
+        """Returns world space matrix for this object.
+        """
         def accum_xform(xform, obj):
             """recursive xform accum"""
             if Xform.matches(obj._iobject):
