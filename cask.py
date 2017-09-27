@@ -42,7 +42,7 @@ into high level convenience methods.
 
 More information can be found at http://docs.alembic.io/python/cask.html
 """
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 import os
 import re
@@ -675,7 +675,7 @@ class Archive(object):
         """
         smps = []
         # look for timesampling data on the iarchive first
-        if self.iobject and not self.oobject:
+        if self.timesamplings or (self.iobject and not self.oobject):
             smps = [(i, ts) for i, ts in enumerate(self.timesamplings)]
         # is none exist, create a new one
         if not smps:
