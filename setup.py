@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #-******************************************************************************
 #
-# Copyright (c) 2012-2016,
+# Copyright (c) 2012-2017,
 #  Sony Pictures Imageworks Inc. and
 #  Industrial Light & Magic, a division of Lucasfilm Entertainment Company Ltd.
 #
@@ -50,7 +50,7 @@ def get_deps(*args):
 
 setup(
     name='cask',
-    version='1.0.0',
+    version='1.0.2',
     description='Cask - High level convenience wrapper for Alembic files',
     author='Ryan Galloway',
     author_email='ryang@ilm.com',
