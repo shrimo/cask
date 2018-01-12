@@ -1,6 +1,6 @@
 #-******************************************************************************
 #
-# Copyright (c) 2012-2017,
+# Copyright (c) 2012-2018,
 #  Sony Pictures Imageworks Inc. and
 #  Industrial Light & Magic, a division of Lucasfilm Entertainment Company Ltd.
 #
@@ -42,7 +42,7 @@ into high level convenience methods.
 
 More information can be found at http://docs.alembic.io/python/cask.html
 """
-__version__ = "1.0.2"
+__version__ = "1.1.0"
 
 import os
 import re
@@ -98,36 +98,108 @@ ISCHEMAS = {
 }
 
 
+class DataType(object):
+    """Base class for data type classes. Used to cast values to
+    specific data types when writing property values, e.g. int8_t.
+    Should use one of the subclasses and only when setting values, 
+    e.g. if prop is a cask Property,
+
+    ::
+
+        prop.set_value(cask.Int8(0), index=0)
+
+    should write out the value as an int8_t data type in the archive.
+
+    TODO: support operations on data types.
+    """
+
+    def __init__(self, n, klass, bytes=None):
+        if bytes is not None:
+            self.n = klass(n & bytes)
+        else:
+            self.n = klass(n)
+
+    def __repr__(self):
+        return self.value()
+
+    def __str__(self):
+        return str(self.value()) 
+
+    def value(self):
+        return self.n.value
+
+
+class Int8(DataType):
+    def __init__(self, n):
+        super(Int8, self).__init__(n, ctypes.c_int8, 0xff)
+
+
+class Int16(DataType):
+    def __init__(self, n):
+        super(Int16, self).__init__(n, ctypes.c_int16, 0xffff)
+
+
+class Int32(DataType):
+    def __init__(self, n):
+        super(Int32, self).__init__(n, ctypes.c_int32, 0xffffffff)
+
+
+class Int64(DataType):
+    def __init__(self, n):
+        super(Int64, self).__init__(n, ctypes.c_int64, 0xffffffffffffffff)
+
+
+class Uint8(DataType):
+    def __init__(self, n):
+        super(Uint8, self).__init__(n, ctypes.c_uint8)
+
+
+class Uint16(DataType):
+    def __init__(self, n):
+        super(Uint16, self).__init__(n, ctypes.c_uint16)
+
+
+class Uint32(DataType):
+    def __init__(self, n):
+        super(Uint32, self).__init__(n, ctypes.c_uint32)
+
+
+class Uint64(DataType):
+    def __init__(self, n):
+        super(Uint64, self).__init__(n, ctypes.c_uint64)
+
+
+# Type functions are deprecated and will be removed in next release
 def int8(n):
-    return ctypes.c_int8(n & 0xff).value
+    return Int8(n).value()
 
 
 def int16(n):
-    return ctypes.c_int16(n & 0xffff).value
+    return Int16(n).value()
 
 
 def int32(n):
-    return ctypes.c_int32(n & 0xffffffff).value
+    return Int32(n).value()
 
 
 def int64(n):
-    return ctypes.c_int64(n & 0xffffffffffffffff).value
+    return Int64(n).value()
 
 
 def uint8(n):
-    return ctypes.c_uint8(n).value
+    return Uint8(n).value()
 
 
 def uint16(n):
-    return ctypes.c_uint16(n).value
+    return Uint16(n).value()
 
 
 def uint32(n):
-    return ctypes.c_uint32(n).value
+    return Uint32(n).value()
 
 
 def uint64(n):
-    return ctypes.c_uint64(n).value
+    return Uint64(n).value()
 
 
 # Python class mapping to Imath array class
@@ -164,23 +236,27 @@ IMATH_ARRAYS_BY_TYPE = {
     imath.V4s: imath.V4sArray,
     int: imath.IntArray,
     str: imath.StringArray,
-    uint8: imath.UnsignedCharArray,
-    uint16: imath.UnsignedShortArray,
-    uint32: imath.UnsignedIntArray,
+    Int8: imath.SignedCharArray,
+    Int16: imath.ShortArray,
+    Int32: imath.IntArray,
+    Uint8: imath.UnsignedCharArray,
+    Uint16: imath.UnsignedShortArray,
+    Uint32: imath.UnsignedIntArray
 }
+IMATH_ARRAYS_VALUES = set(IMATH_ARRAYS_BY_TYPE.values())
 
 # Python class mapping to Alembic POD, extent
 POD_EXTENT = {
     bool: (alembic.Util.POD.kBooleanPOD, -1),
-    uint8: (alembic.Util.POD.kUint8POD, -1),
-    int8: (alembic.Util.POD.kInt8POD, -1),
-    uint16: (alembic.Util.POD.kUint16POD, -1),
-    int16: (alembic.Util.POD.kInt16POD, -1),
-    uint32: (alembic.Util.POD.kUint32POD, -1),
+    Uint8: (alembic.Util.POD.kUint8POD, -1),
+    Int8: (alembic.Util.POD.kInt8POD, -1),
+    Uint16: (alembic.Util.POD.kUint16POD, -1),
+    Int16: (alembic.Util.POD.kInt16POD, -1),
+    Uint32: (alembic.Util.POD.kUint32POD, -1),
     int: (alembic.Util.POD.kInt32POD, -1),
-    int32: (alembic.Util.POD.kInt32POD, -1),
-    uint64: (alembic.Util.POD.kUint64POD, -1),
-    int64: (alembic.Util.POD.kInt64POD, -1),
+    Int32: (alembic.Util.POD.kInt32POD, -1),
+    Uint64: (alembic.Util.POD.kUint64POD, -1),
+    Int64: (alembic.Util.POD.kInt64POD, -1),
     float: (alembic.Util.POD.kFloat64POD, -1),
     str: (alembic.Util.POD.kStringPOD, -1),
     imath.V3f: (alembic.Util.POD.kFloat32POD, -1),
@@ -229,7 +305,9 @@ def _delist(val):
 
 def python_to_imath(value):
     """Converts Python lists to Imath arrays."""
-    if value in IMATH_ARRAYS_BY_TYPE.values():
+    if isinstance(value, DataType):
+        return value.value()
+    elif type(value) in IMATH_ARRAYS_VALUES:
         return value
     value = _delist(value)
     is_array = type(value) in (set, list)

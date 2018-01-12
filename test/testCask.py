@@ -1,6 +1,6 @@
 #-******************************************************************************
 #
-# Copyright (c) 2012-2017,
+# Copyright (c) 2012-2018,
 #  Sony Pictures Imageworks Inc. and
 #  Industrial Light & Magic, a division of Lucasfilm Entertainment Company Ltd.
 #
@@ -665,7 +665,13 @@ class Test1_Write(unittest.TestCase):
         fred = foo.properties["fred"] = cask.Property()
         color = foo.properties["color"] = cask.Property()
         color.metadata["interpretation"] = "rgb"
-        
+
+        # test setting explicit data type
+        visible = foo.properties["visible"] = cask.Property()
+        visible.set_value(cask.Int8(0), index=0)
+        something = foo.properties["something"] = cask.Property()
+        something.set_value(cask.Int32(1234), index=0)
+
         # set test values
         v = imath.UnsignedCharArray(5)
         for i in range(0, 5):
@@ -696,7 +702,9 @@ class Test1_Write(unittest.TestCase):
         waldo = foo.properties["waldo"]
         fred = foo.properties["fred"]
         color = foo.properties["color"]
-        
+        visible = foo.properties["visible"]
+        something = foo.properties["something"]
+
         # assert pod, extent values
         self.assertEqual(bar.extent(), 5)
         self.assertEqual(bar.pod(), alembic.Util.POD.kUint8POD)
@@ -723,6 +731,12 @@ class Test1_Write(unittest.TestCase):
         self.assertEqual(color.pod(), alembic.Util.POD.kFloat32POD)
         self.assertEqual(color.metadata["interpretation"], "rgb")
         self.assertEqual(color.values[0], imath.Color3f(1, 2, 3))
+        self.assertEqual(visible.values[0], 0)
+        self.assertEqual(visible.pod(), alembic.Util.POD.kInt8POD)
+        self.assertEqual(visible.extent(), 1)
+        self.assertEqual(something.values[0], 1234)
+        self.assertEqual(something.pod(), alembic.Util.POD.kInt32POD)
+        self.assertEqual(something.extent(), 1)
 
     def test_child_bounds(self):
         filename_1 = os.path.join(TEMPDIR, "cask_child_bounds_1.abc")
