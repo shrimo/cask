@@ -42,7 +42,7 @@ into high level convenience methods.
 
 More information can be found at http://docs.alembic.io/python/cask.html
 """
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 import os
 import re
@@ -1156,6 +1156,11 @@ class Property(object):
                     elif prop.parent.name == ".userProperties":
                         up = Property()
                         up._oobject = prop.object().oobject.getSchema().getUserProperties()
+                        up.properties[prop.name] = prop
+                        prop.parent = up
+                    elif prop.parent.name == ".arbGeomParams":
+                        up = Property()
+                        up._oobject = prop.object().oobject.getSchema().getArbGeomParams()
                         up.properties[prop.name] = prop
                         prop.parent = up
                 else:

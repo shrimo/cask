@@ -1359,5 +1359,25 @@ class Test3_Issues(unittest.TestCase):
         self.assertTrue(p2.iobject.isScalar())
         a.close()
 
+    def test_issue_8(self):
+        """creating arbGeomParams on geom objects
+        https://github.com/alembic/cask/issues/8"""
+
+        test_file_1 = os.path.join(TEMPDIR, "cask_test_issue_8.abc")
+
+        a = cask.Archive()
+        m = a.top.children["meshy"] = cask.PolyMesh()
+        p = m.properties[".geom/.arbGeomParams/test"] = cask.Property()
+        p.set_value("somevalue")
+        a.write_to_file(test_file_1)
+        a.close()
+
+        a1 = cask.Archive(test_file_1)
+        m1 = a1.top.children["meshy"]
+        self.assertTrue("test" in m1.properties[".geom/.arbGeomParams"].properties)
+        self.assertEqual(m1.properties[".geom/.arbGeomParams/test"].values[0],
+                "somevalue")
+
+
 if __name__ == '__main__':
     unittest.main()
