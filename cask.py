@@ -239,6 +239,7 @@ IMATH_ARRAYS_BY_TYPE = {
     Int8: imath.SignedCharArray,
     Int16: imath.ShortArray,
     Int32: imath.IntArray,
+    Int64: imath.DoubleArray,
     Uint8: imath.UnsignedCharArray,
     Uint16: imath.UnsignedShortArray,
     Uint32: imath.UnsignedIntArray
@@ -294,6 +295,8 @@ def get_simple_oprop_class(prop):
     value = prop.values[0] if len(prop.values) > 0 else []
     if prop.iobject:
         is_array = prop.iobject.isArray()
+    elif type(value) in IMATH_ARRAYS_VALUES:
+        is_array = True
     else:
         is_array = type(value) in [list, set] and len(value) > 1
     if is_array:
