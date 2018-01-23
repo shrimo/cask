@@ -850,6 +850,7 @@ class Test2_Read(unittest.TestCase):
     def test_read_mesh(self):
         filepath = mesh_out()
         self.assertTrue(cask.is_valid(filepath))
+        print filepath
         a = cask.Archive(filepath)
         t = a.top
 
@@ -1367,17 +1368,34 @@ class Test3_Issues(unittest.TestCase):
 
         a = cask.Archive()
         m = a.top.children["meshy"] = cask.PolyMesh()
-        p = m.properties[".geom/.arbGeomParams/test"] = cask.Property()
-        p.set_value("somevalue")
+
+        p1 = m.properties[".geom/.arbGeomParams/test"] = cask.Property()
+        p1.set_value("somevalue")
+
+        p2 = m.properties[".geom/.arbGeomParams/rotation"] = cask.Property()
+        p2.set_value([imath.V3f(1, 2, 3), imath.V3f(4, 5, 6), imath.V3f(7, 8, 9)])
+
+        self.assertEqual(p2.pod(), alembic.Util.POD.kFloat32POD)
+        self.assertEqual(p2.extent(), 3)
+
         a.write_to_file(test_file_1)
         a.close()
 
         a1 = cask.Archive(test_file_1)
         m1 = a1.top.children["meshy"]
         self.assertTrue("test" in m1.properties[".geom/.arbGeomParams"].properties)
+        self.assertTrue("rotation" in m1.properties[".geom/.arbGeomParams"].properties)
+
         self.assertEqual(m1.properties[".geom/.arbGeomParams/test"].values[0],
                 "somevalue")
-
+        
+        p2 = m1.properties[".geom/.arbGeomParams/rotation"]
+        self.assertEqual(p2.pod(), alembic.Util.POD.kFloat32POD)
+        self.assertEqual(p2.extent(), 3)
+        self.assertEqual(type(p2.values[0]), imath.V3fArray)
+        self.assertEqual(p2.values[0][0], imath.V3f(1, 2, 3))
+        self.assertEqual(p2.values[0][1], imath.V3f(4, 5, 6))
+        self.assertEqual(p2.values[0][2], imath.V3f(7, 8, 9))
 
 if __name__ == '__main__':
     unittest.main()

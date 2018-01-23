@@ -259,7 +259,8 @@ POD_EXTENT = {
     Int64: (alembic.Util.POD.kInt64POD, -1),
     float: (alembic.Util.POD.kFloat64POD, -1),
     str: (alembic.Util.POD.kStringPOD, -1),
-    imath.V3f: (alembic.Util.POD.kFloat32POD, -1),
+    imath.V3f: (alembic.Util.POD.kFloat32POD, 3),
+    imath.V3d: (alembic.Util.POD.kFloat64POD, 3),
     imath.Color3c: (alembic.Util.POD.kUint8POD, -1),
     imath.Color3f: (alembic.Util.POD.kFloat32POD, -1),
     imath.Color4c: (alembic.Util.POD.kUint8POD, -1),
@@ -273,6 +274,8 @@ POD_EXTENT = {
     imath.StringArray: (alembic.Util.POD.kStringPOD, -1),
     imath.UnsignedCharArray: (alembic.Util.POD.kUint8POD, -1),
     imath.IntArray: (alembic.Util.POD.kInt32POD, -1),
+    imath.V3fArray: (alembic.Util.POD.kFloat32POD, 3),
+    imath.V3dArray: (alembic.Util.POD.kFloat64POD, 3),
     imath.FloatArray: (alembic.Util.POD.kFloat32POD, -1),
     imath.DoubleArray: (alembic.Util.POD.kFloat64POD, -1),
 }
@@ -331,6 +334,7 @@ def get_pod_extent(prop):
         pod, extent = POD_EXTENT.get(type(value0))
     except TypeError as err:
         print "Error getting pod, extent from", prop, value0
+        print err
         return (alembic.Util.POD.kUnknownPOD, 1)
     if extent <= 0:
        extent = (len(value0)
