@@ -42,7 +42,7 @@ into high level convenience methods.
 
 More information can be found at http://docs.alembic.io/python/cask.html
 """
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 import os
 import re
@@ -239,6 +239,7 @@ IMATH_ARRAYS_BY_TYPE = {
     Int8: imath.SignedCharArray,
     Int16: imath.ShortArray,
     Int32: imath.IntArray,
+    Int64: imath.DoubleArray,
     Uint8: imath.UnsignedCharArray,
     Uint16: imath.UnsignedShortArray,
     Uint32: imath.UnsignedIntArray
@@ -259,7 +260,8 @@ POD_EXTENT = {
     Int64: (alembic.Util.POD.kInt64POD, -1),
     float: (alembic.Util.POD.kFloat64POD, -1),
     str: (alembic.Util.POD.kStringPOD, -1),
-    imath.V3f: (alembic.Util.POD.kFloat32POD, -1),
+    imath.V3f: (alembic.Util.POD.kFloat32POD, 3),
+    imath.V3d: (alembic.Util.POD.kFloat64POD, 3),
     imath.Color3c: (alembic.Util.POD.kUint8POD, -1),
     imath.Color3f: (alembic.Util.POD.kFloat32POD, -1),
     imath.Color4c: (alembic.Util.POD.kUint8POD, -1),
@@ -273,6 +275,8 @@ POD_EXTENT = {
     imath.StringArray: (alembic.Util.POD.kStringPOD, -1),
     imath.UnsignedCharArray: (alembic.Util.POD.kUint8POD, -1),
     imath.IntArray: (alembic.Util.POD.kInt32POD, -1),
+    imath.V3fArray: (alembic.Util.POD.kFloat32POD, 3),
+    imath.V3dArray: (alembic.Util.POD.kFloat64POD, 3),
     imath.FloatArray: (alembic.Util.POD.kFloat32POD, -1),
     imath.DoubleArray: (alembic.Util.POD.kFloat64POD, -1),
 }
@@ -291,6 +295,8 @@ def get_simple_oprop_class(prop):
     value = prop.values[0] if len(prop.values) > 0 else []
     if prop.iobject:
         is_array = prop.iobject.isArray()
+    elif type(value) in IMATH_ARRAYS_VALUES:
+        is_array = True
     else:
         is_array = type(value) in [list, set] and len(value) > 1
     if is_array:
@@ -331,6 +337,7 @@ def get_pod_extent(prop):
         pod, extent = POD_EXTENT.get(type(value0))
     except TypeError as err:
         print "Error getting pod, extent from", prop, value0
+        print err
         return (alembic.Util.POD.kUnknownPOD, 1)
     if extent <= 0:
        extent = (len(value0)
@@ -1156,6 +1163,11 @@ class Property(object):
                     elif prop.parent.name == ".userProperties":
                         up = Property()
                         up._oobject = prop.object().oobject.getSchema().getUserProperties()
+                        up.properties[prop.name] = prop
+                        prop.parent = up
+                    elif prop.parent.name == ".arbGeomParams":
+                        up = Property()
+                        up._oobject = prop.object().oobject.getSchema().getArbGeomParams()
                         up.properties[prop.name] = prop
                         prop.parent = up
                 else:

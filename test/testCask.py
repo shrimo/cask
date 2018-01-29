@@ -53,7 +53,6 @@ TEMPDIR = tempfile.mkdtemp()
 
 """
 TODO
- - more tests for getting and setting values/samples
  - test creating prototype schema objects
  - test name collisions when creating new objects and properties
 """
@@ -706,7 +705,7 @@ class Test1_Write(unittest.TestCase):
         something = foo.properties["something"]
 
         # assert pod, extent values
-        self.assertEqual(bar.extent(), 5)
+        self.assertEqual(bar.extent(), 1)
         self.assertEqual(bar.pod(), alembic.Util.POD.kUint8POD)
         self.assertEqual(bar.values[0], v)
         self.assertEqual(baz.extent(), 1)
@@ -1346,8 +1345,26 @@ class Test3_Issues(unittest.TestCase):
         a.top.children["foo"] = cask.Xform()
         p1 = a.top.children["foo"].properties["p1"] = cask.Property()
         p2 = a.top.children["foo"].properties["p2"] = cask.Property()
-        p1.set_value(imath.UnsignedCharArray(6))
-        p2.set_value(imath.DoubleArray(12))
+        p3 = a.top.children["foo"].properties["p3"] = cask.Property()
+        p4 = a.top.children["foo"].properties["p4"] = cask.Property()
+
+        ca = imath.UnsignedCharArray(6)
+        for i in range(6):
+            ca[i] = i
+        p1.set_value(ca)
+
+        da = imath.DoubleArray(12)
+        for i in range(12):
+            da[i] = i * 3.0
+        p2.set_value(da)
+
+        va = imath.V3fArray(3)
+        for i in range(3):
+            va[i] = imath.V3f(i, i*2.0, i*3.0)
+        p3.set_value(va)
+
+        p4.set_value([imath.V3f(1, 2, 3), imath.V3f(4, 5, 6), imath.V3f(7, 8, 9)])
+
         a.write_to_file(test_file_1)
         a.close()
 
@@ -1355,9 +1372,38 @@ class Test3_Issues(unittest.TestCase):
         a = cask.Archive(test_file_1)
         p1 = a.top.children["foo"].properties["p1"]
         p2 = a.top.children["foo"].properties["p2"]
-        self.assertTrue(p1.iobject.isScalar())
-        self.assertTrue(p2.iobject.isScalar())
+        p3 = a.top.children["foo"].properties["p3"]
+        p4 = a.top.children["foo"].properties["p4"]
+        self.assertTrue(p1.iobject.isArray())
+        self.assertTrue(p2.iobject.isArray())
+        self.assertTrue(p3.iobject.isArray())
+        self.assertTrue(p4.iobject.isArray())
         a.close()
+
+    def test_issue_8(self):
+        """creating arbGeomParams on geom objects
+        https://github.com/alembic/cask/issues/8"""
+
+        test_file_1 = os.path.join(TEMPDIR, "cask_test_issue_8.abc")
+
+        a = cask.Archive()
+        m = a.top.children["meshy"] = cask.PolyMesh()
+
+        p1 = m.properties[".geom/.arbGeomParams/test"] = cask.Property()
+        p1.set_value("somevalue")
+
+        a.write_to_file(test_file_1)
+        a.close()
+
+        a1 = cask.Archive(test_file_1)
+        m1 = a1.top.children["meshy"]
+        self.assertTrue("test" in m1.properties[".geom/.arbGeomParams"].properties)
+
+        self.assertEqual(m1.properties[".geom/.arbGeomParams/test"].values[0],
+                "somevalue")
+
+        a1.close()
+
 
 if __name__ == '__main__':
     unittest.main()
