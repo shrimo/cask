@@ -1683,5 +1683,19 @@ class Light(Object):
 
 class Points(Object):
     """Points I/O Object subclass."""
+    _sample_class = alembic.AbcGeom.OPointsSchemaSample
     def __init__(self, *args, **kwargs):
         super(Points, self).__init__(*args, **kwargs)
+
+    def set_positions(self, *args):        
+        content = args[0]
+        # print content
+        positions = imath.V3fArray(len(content))
+        ids = imath.IntArray(len(content))
+        for i in range(0, len(content)):
+            positions[i] = content[i]
+            ids[i] = i
+        points_sample = alembic.AbcGeom.OPointsSchemaSample()
+        points_sample.setIds(ids)
+        points_sample.setPositions(positions)
+        self.set_sample(points_sample
