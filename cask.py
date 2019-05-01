@@ -1698,4 +1698,4 @@ class Points(Object):
         points_sample = alembic.AbcGeom.OPointsSchemaSample()
         points_sample.setIds(ids)
         points_sample.setPositions(positions)
-        self.set_sample(points_sample
+        self.set_sample(points_sample)
